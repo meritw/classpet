@@ -5,7 +5,7 @@ Solo MVP scaffold for the Roblox experience **Hamster Simulator: Class Pet** —
 ## Stack
 
 - **Rojo** syncs `src/` into a Studio place (`default.project.json`)
-- **Rokit** pins the Rojo version (`rokit.toml`)
+- **Rokit** pins Rojo **7.7.0** (`rokit.toml`) — keep the CLI and Studio plugin on the same version to avoid `protocolVersion` connect errors
 - Layout: `src/server` · `src/client` · `src/shared`
 
 ## Open / sync the place
@@ -16,13 +16,15 @@ Solo MVP scaffold for the Roblox experience **Hamster Simulator: Class Pet** —
    rokit install
    ```
 
+   If `rojo --version` is not 7.7.0, Aftman (or another manager) may be shadowing PATH — prefer `~/.rokit/bin` first, or run `~/.rokit/bin/rojo` directly.
+
 2. Start the Rojo server:
 
    ```bash
    rojo serve
    ```
 
-3. In Roblox Studio: install the [Rojo plugin](https://rojo.space/docs/v7/getting-started/installation/) → **Connect** to the default address (`localhost:34872`).
+3. In Roblox Studio: install the [Rojo plugin](https://rojo.space/docs/v7/getting-started/installation/) **7.7.0** → **Connect** to the default address (`localhost:34872`).
 
 4. Press **Play** (solo). Placeholder classroom parts are created at runtime if missing (`CageVolume`, `Latch`, `LessonSpot`, `Phone`, `DogSpawn`).
 
