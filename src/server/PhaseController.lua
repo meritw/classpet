@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Types = require(ReplicatedStorage.Shared.Types)
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
+local LevelSetup = require(script.Parent.LevelSetup)
 
 local PhaseController = {}
 
@@ -97,6 +98,8 @@ local function applyLighting(nextPhase: Types.Phase)
 			cc.TintColor = Color3.fromRGB(255, 245, 220)
 		end
 	end
+	-- Fluorescent fixtures: bright by day, nearly off at night (phone/dog stay readable).
+	LevelSetup.SetCeilingLightsForPhase(nextPhase)
 end
 
 local function broadcast(player: Player?)

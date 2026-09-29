@@ -2,6 +2,8 @@
 
 **Overnight visual pass (2026-09-29):** Play should read as a bright elementary classroom + pet hamster cage, not a baseplate with blue boxes. Geometry in `LevelSetup` is **Roblox-native placeholder** art matching Synty POLYGON proportions/colors until FBX lands.
 
+**Placeholder polish (same night):** richer Parts set dressing (floor tiles, trim, posters, bookshelves, ceiling lights, blinds, trash, clock), denser cage bars + water bottle + wood-chip bedding, landline-style phone, dog legs/tail/ears silhouette, lightweight `HamsterDress` on the scaled player. **No Synty pack source in the public repo.**
+
 ## Pack priority (from Dex shortlist)
 
 | # | Pack | Use in Class Pet |
@@ -27,10 +29,11 @@ Full rationale + gaps: Project store `docs/synty-asset-shortlist.md`. Dex: https
 | `StudentDesk_*` / `StudentChair_*` | Desk + chair parts | Kids Pack school desks/chairs |
 | `TeacherDesk` | Office-brown desk | Office Pack desk |
 | `Whiteboard` / `BulletinBoard` | Flat boards | Police Station whiteboard / Kids boards |
-| `Phone` (tag `Phone`) | Black desk phone + green ready light | Police Station phone on teacher desk |
-| `HamsterDesk` + `PetCageVisual` / `CageVolume` / `Latch` | Custom plastic tray + wire bars + green latch (CageSize **4×2.5×3**) | Keep custom; optional Dog Pack carrier scrap |
-| `ClassDog` | Blocky Labrador-ish parts + collar | Dog Pack animated dog |
-| Player character | `HamsterAvatar` ScaleTo(**0.2**) + close hamster cam | Custom hamster or Fantasy Village mouse |
+| `Phone` (tag `Phone`) | Landline base + keypad + handset/cradle + green ready light | Police Station phone on teacher desk |
+| `HamsterDesk` + `PetCageVisual` / `CageVolume` / `Latch` | Plastic tray/lip, denser wire grid, water bottle, wood-chip bedding, wheel, green latch (CageSize **4×2.5×3**) | Keep custom; optional Dog Pack carrier scrap |
+| `ClassDog` | Labrador-ish Parts (legs, paws, tail, ears, snout) + collar | Dog Pack animated dog |
+| `CeilingLights` / posters / shelves / blinds / clock / trash | Roblox Parts set dressing | Kids / Office / Police props |
+| Player character | `HamsterAvatar` ScaleTo(**0.2**) + `HamsterDress` Parts + close hamster cam | Custom hamster or Fantasy Village mouse |
 
 ## Import steps for spaceman / Studio later
 
