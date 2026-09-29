@@ -1,100 +1,57 @@
--- Close third-person / over-shoulder hamster cam (overnight lock).
--- Client-only. Uses Scriptable camera + PreRender.
+-- Close third-person hamster cam via CameraType.Custom + PlayerModule.
+-- Preserves normal mouse look / RMB orbit / right-stick (no Scriptable lock).
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local HamsterCam = {}
 
 local player = Players.LocalPlayer
-local yaw = 0
-local pitch = -0.18
-local connection: RBXScriptConnection? = nil
-local rotateConn: RBXScriptConnection? = nil
 
--- Tight follow for ScaleTo(0.2) hamster — over-shoulder, not default human cam.
-local DISTANCE = 4.2
-local HEIGHT = 1.35
-local SHOULDER = 0.85
+-- Tight zoom band for ScaleTo(0.2) hamster — still PlayerModule-controlled.
+local MIN_ZOOM = 2.5
+local MAX_ZOOM = 14
 local FOV = 62
-local SENS = 0.0045
+local CAMERA_OFFSET = Vector3.new(0.55, 0.55, 0) -- slight over-shoulder
 
-local function getRoot(): BasePart?
-	local character = player.Character
-	if not character then
-		return nil
-	end
-	return character:FindFirstChild("HumanoidRootPart") :: BasePart?
-end
-
-local function updateCamera(_dt: number)
-	local camera = Workspace.CurrentCamera
-	local root = getRoot()
-	if not camera or not root then
+local function applyToCharacter(character: Model)
+	local humanoid = character:WaitForChild("Humanoid", 8)
+	if not humanoid or not humanoid:IsA("Humanoid") then
 		return
 	end
-	camera.CameraType = Enum.CameraType.Scriptable
-	camera.FieldOfView = FOV
 
-	local rot = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
-	local focus = root.Position + Vector3.new(0, 0.55, 0)
-	local offset = rot:VectorToWorldSpace(Vector3.new(SHOULDER, HEIGHT, DISTANCE))
-	local camPos = focus + offset
-	camera.CFrame = CFrame.lookAt(camPos, focus)
-	camera.Focus = CFrame.new(focus)
+	local camera = Workspace.CurrentCamera
+	if camera then
+		camera.CameraType = Enum.CameraType.Custom
+		camera.CameraSubject = humanoid
+		camera.FieldOfView = FOV
+	end
+
+	player.CameraMinZoomDistance = MIN_ZOOM
+	player.CameraMaxZoomDistance = MAX_ZOOM
+	-- Prefer a close default without fighting PlayerModule's zoom input.
+	if player.CameraMode ~= Enum.CameraMode.Classic then
+		player.CameraMode = Enum.CameraMode.Classic
+	end
+
+	humanoid.CameraOffset = CAMERA_OFFSET
 end
 
 function HamsterCam.Start()
-	if connection then
-		return
+	if player.Character then
+		task.spawn(applyToCharacter, player.Character)
 	end
-	-- Seed yaw from current look if available
-	local root = getRoot()
-	if root then
-		yaw = math.atan2(-root.CFrame.LookVector.X, -root.CFrame.LookVector.Z)
-	end
-
-	rotateConn = UserInputService.InputChanged:Connect(function(input, processed)
-		if processed then
-			return
-		end
-		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) or UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
-				yaw -= input.Delta.X * SENS
-				pitch = math.clamp(pitch - input.Delta.Y * SENS, -0.85, 0.35)
-			end
-		elseif input.UserInputType == Enum.UserInputType.Touch then
-			-- Touch look is handled lightly via delta when not processed by UI
-			yaw -= input.Delta.X * SENS * 0.6
-			pitch = math.clamp(pitch - input.Delta.Y * SENS * 0.6, -0.85, 0.35)
-		end
+	player.CharacterAdded:Connect(function(character)
+		task.defer(applyToCharacter, character)
 	end)
 
-	-- Prefer RMB orbit; also lock mouse on RMB hold for PC feel.
-	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed then
-			return
+	-- Re-assert Custom if something else flips Scriptable (e.g. Studio tooling).
+	Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+		local camera = Workspace.CurrentCamera
+		local character = player.Character
+		if camera and character then
+			task.defer(applyToCharacter, character)
 		end
-		if input.UserInputType == Enum.UserInputType.MouseButton2 then
-			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
-		end
-	end)
-	UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton2 then
-			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		end
-	end)
-
-	connection = RunService.PreRender:Connect(updateCamera)
-	player.CharacterAdded:Connect(function()
-		task.defer(function()
-			local r = getRoot()
-			if r then
-				yaw = math.atan2(-r.CFrame.LookVector.X, -r.CFrame.LookVector.Z)
-			end
-		end)
 	end)
 end
 

@@ -509,12 +509,14 @@ local function buildPetCage(classroom: Folder)
 	local P = ArtPalette
 	local tags = GameConfig.Tags
 
-	-- Desk the cage sits on (human/classroom scale — sizes from hamster-scale PR).
+	-- Desk the cage sits on (human/classroom scale; footprint grows with CageSize).
 	local deskHeight = deskTopY - 0.5 -- floor top ≈ 0.5
+	local deskFootX = cageSize.X + 2.5
+	local deskFootZ = cageSize.Z + 2.5
 	ensurePart(
 		classroom,
 		"HamsterDesk",
-		Vector3.new(6, deskHeight, 4.5),
+		Vector3.new(deskFootX, deskHeight, deskFootZ),
 		CFrame.new(cageCenter.X, 0.5 + deskHeight * 0.5, cageCenter.Z),
 		Color3.fromRGB(140, 100, 60),
 		Enum.Material.Wood
@@ -523,14 +525,14 @@ local function buildPetCage(classroom: Folder)
 	ensurePart(
 		classroom,
 		"HamsterDeskEdge",
-		Vector3.new(6.2, 0.15, 4.7),
+		Vector3.new(deskFootX + 0.2, 0.15, deskFootZ + 0.2),
 		CFrame.new(cageCenter.X, deskTopY - 0.05, cageCenter.Z),
 		Color3.fromRGB(120, 85, 50),
 		Enum.Material.Wood,
 		{ canCollide = false }
 	)
 
-	-- Transparent gameplay volume — keep exact CageSize/CageCenter.
+	-- Transparent gameplay volume — keep exact CageSize/CageCenter (non-colliding marker).
 	local cage = ensureTaggedPart(
 		classroom,
 		"CageVolume",
@@ -539,7 +541,7 @@ local function buildPetCage(classroom: Folder)
 		CFrame.new(cageCenter),
 		Color3.fromRGB(180, 180, 200)
 	)
-	cage.Transparency = 0.85
+	cage.Transparency = 0.92
 	cage.CanCollide = false
 	cage.Material = Enum.Material.ForceField
 
@@ -547,15 +549,46 @@ local function buildPetCage(classroom: Folder)
 	local halfX = cageSize.X * 0.5
 	local halfY = cageSize.Y * 0.5
 	local halfZ = cageSize.Z * 0.5
+	local wallThick = 0.2
 
-	-- Plastic tray / base with raised lip
+	-- Solid invisible walls + ceiling: walk-out only via latch teleport (E).
+	-- Thin visual bars alone leave gaps a ScaleTo(0.2) HRP can slip through.
+	local collision = ensureModel(classroom, "PetCageCollision")
+	local wallH = cageSize.Y
+	local wallY = cageCenter.Y
+	local function collideWall(name: string, size: Vector3, cf: CFrame)
+		local wall = ensurePart(
+			collision,
+			name,
+			size,
+			cf,
+			Color3.fromRGB(200, 200, 210),
+			Enum.Material.SmoothPlastic,
+			{ canCollide = true, transparency = 1 }
+		)
+		wall.CanQuery = false
+		wall.CanTouch = false
+		return wall
+	end
+	collideWall("Wall_Door", Vector3.new(wallThick, wallH, cageSize.Z), CFrame.new(cageCenter.X + halfX, wallY, cageCenter.Z))
+	collideWall("Wall_Back", Vector3.new(wallThick, wallH, cageSize.Z), CFrame.new(cageCenter.X - halfX, wallY, cageCenter.Z))
+	collideWall("Wall_NZ", Vector3.new(cageSize.X, wallH, wallThick), CFrame.new(cageCenter.X, wallY, cageCenter.Z - halfZ))
+	collideWall("Wall_PZ", Vector3.new(cageSize.X, wallH, wallThick), CFrame.new(cageCenter.X, wallY, cageCenter.Z + halfZ))
+	collideWall(
+		"Wall_Ceiling",
+		Vector3.new(cageSize.X + wallThick, wallThick, cageSize.Z + wallThick),
+		CFrame.new(cageCenter.X, cageCenter.Y + halfY, cageCenter.Z)
+	)
+
+	-- Plastic tray / base with raised lip (floor collision)
 	ensurePart(
 		visual,
 		"CageTray",
 		Vector3.new(cageSize.X + 0.35, 0.28, cageSize.Z + 0.35),
 		CFrame.new(cageCenter.X, deskTopY + 0.08, cageCenter.Z),
 		P.CageTray,
-		Enum.Material.SmoothPlastic
+		Enum.Material.SmoothPlastic,
+		{ canCollide = true }
 	)
 	ensurePart(
 		visual,
@@ -570,7 +603,7 @@ local function buildPetCage(classroom: Folder)
 	ensurePart(
 		visual,
 		"Bedding",
-		Vector3.new(cageSize.X - 0.25, 0.12, cageSize.Z - 0.25),
+		Vector3.new(cageSize.X - 0.35, 0.12, cageSize.Z - 0.35),
 		CFrame.new(cageCenter.X, deskTopY + 0.28, cageCenter.Z),
 		P.Bedding,
 		Enum.Material.Sand,
@@ -578,8 +611,8 @@ local function buildPetCage(classroom: Folder)
 	)
 	-- Bedding speckles for chip read
 	for i = 1, 5 do
-		local ox = ((i % 3) - 1) * 0.7
-		local oz = ((i % 2) * 2 - 1) * 0.5
+		local ox = ((i % 3) - 1) * (halfX * 0.35)
+		local oz = ((i % 2) * 2 - 1) * (halfZ * 0.25)
 		ensurePart(
 			visual,
 			`BeddingChip_{i}`,
@@ -591,7 +624,7 @@ local function buildPetCage(classroom: Folder)
 		)
 	end
 
-	-- Plastic rim / top frame
+	-- Plastic rim / top frame (visual; ceiling collision is separate)
 	ensurePart(
 		visual,
 		"CageRim",
@@ -602,27 +635,31 @@ local function buildPetCage(classroom: Folder)
 		{ canCollide = false }
 	)
 
-	-- Wire bars: denser verticals + horizontal crossbars
-	local barThick = 0.07
+	-- Wire bars: denser verticals + horizontal crossbars (visual + CanCollide backup)
+	local barThick = 0.08
 	local barH = cageSize.Y - 0.4
 	local barY = deskTopY + 0.32 + barH * 0.5
 	local function bar(name: string, size: Vector3, cf: CFrame)
-		ensurePart(visual, name, size, cf, P.CageWire, Enum.Material.Metal, { canCollide = false })
+		ensurePart(visual, name, size, cf, P.CageWire, Enum.Material.Metal, { canCollide = true })
 	end
-	-- Long sides (±X faces in our layout: door +X, back −X; ±Z are short sides)
-	for i = -3, 3 do
-		local z = cageCenter.Z + i * (cageSize.Z / 7)
-		bar(`Wire_DoorV_{i + 4}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X + halfX - 0.02, barY, z))
-		bar(`Wire_BackV_{i + 4}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X - halfX + 0.05, barY, z))
+	-- Long sides (±X faces: door +X, back −X; ±Z short sides). Spacing stays < hamster HRP.
+	local doorBarCount = 11
+	for i = 0, doorBarCount - 1 do
+		local t = (i / (doorBarCount - 1)) * 2 - 1
+		local z = cageCenter.Z + t * (halfZ - 0.12)
+		bar(`Wire_DoorV_{i}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X + halfX - 0.02, barY, z))
+		bar(`Wire_BackV_{i}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X - halfX + 0.05, barY, z))
 	end
-	for i = -4, 4 do
-		local x = cageCenter.X + i * (cageSize.X / 9)
-		bar(`Wire_NZ_{i + 5}`, Vector3.new(barThick, barH, barThick), CFrame.new(x, barY, cageCenter.Z - halfZ + 0.05))
-		bar(`Wire_PZ_{i + 5}`, Vector3.new(barThick, barH, barThick), CFrame.new(x, barY, cageCenter.Z + halfZ - 0.05))
+	local sideBarCount = 13
+	for i = 0, sideBarCount - 1 do
+		local t = (i / (sideBarCount - 1)) * 2 - 1
+		local x = cageCenter.X + t * (halfX - 0.12)
+		bar(`Wire_NZ_{i}`, Vector3.new(barThick, barH, barThick), CFrame.new(x, barY, cageCenter.Z - halfZ + 0.05))
+		bar(`Wire_PZ_{i}`, Vector3.new(barThick, barH, barThick), CFrame.new(x, barY, cageCenter.Z + halfZ - 0.05))
 	end
-	-- Horizontal crossbars (3 per long face)
-	for level = 1, 3 do
-		local y = deskTopY + 0.45 + (level - 1) * (barH / 3.2)
+	-- Horizontal crossbars (4 per face)
+	for level = 1, 4 do
+		local y = deskTopY + 0.45 + (level - 1) * (barH / 4.2)
 		bar(
 			`Wire_H_Door_{level}`,
 			Vector3.new(barThick, barThick, cageSize.Z - 0.15),
@@ -645,60 +682,64 @@ local function buildPetCage(classroom: Folder)
 		)
 	end
 
-	-- Corner posts (plastic)
+	-- Corner posts (plastic, colliding)
 	for _, ox in { -1, 1 } do
 		for _, oz in { -1, 1 } do
 			ensurePart(
 				visual,
 				`Post_{ox}_{oz}`,
-				Vector3.new(0.2, cageSize.Y, 0.2),
+				Vector3.new(0.22, cageSize.Y, 0.22),
 				CFrame.new(cageCenter.X + ox * halfX, cageCenter.Y, cageCenter.Z + oz * halfZ),
 				P.CagePlastic,
 				Enum.Material.SmoothPlastic,
-				{ canCollide = false }
+				{ canCollide = true }
 			)
 		end
 	end
 
-	-- Latch on +X face (GameConfig latch position) — green “doesn’t really latch”
-	local latchPos = Vector3.new(cageCenter.X + halfX, deskTopY + 0.7, cageCenter.Z)
+	-- Latch on +X face — green “doesn’t really latch”; non-colliding so E interact isn’t blocked
+	local latchPos = Vector3.new(cageCenter.X + halfX + 0.15, deskTopY + 0.85, cageCenter.Z)
 	local latch = ensureTaggedPart(
 		classroom,
 		"Latch",
 		tags.Latch,
-		Vector3.new(0.35, 0.35, 0.25),
+		Vector3.new(0.4, 0.4, 0.3),
 		CFrame.new(latchPos),
 		P.CageLatch
 	)
 	latch.Material = Enum.Material.Metal
-	ensurePointLight(latch, "LatchHint", P.CageLatch, 0.6, 4)
+	latch.CanCollide = false
+	ensurePointLight(latch, "LatchHint", P.CageLatch, 0.7, 5)
 	-- Latch handle nub
 	ensurePart(
 		visual,
 		"LatchHandle",
 		Vector3.new(0.15, 0.15, 0.35),
-		CFrame.new(latchPos + Vector3.new(0.2, 0, 0)),
+		CFrame.new(latchPos + Vector3.new(0.22, 0, 0)),
 		Color3.fromRGB(70, 110, 55),
 		Enum.Material.Metal,
 		{ canCollide = false }
 	)
 
-	-- Lesson pad inside cage
-	ensureTaggedPart(
+	-- Lesson pad inside cage (forward of center)
+	local lesson = ensureTaggedPart(
 		classroom,
 		"LessonSpot",
 		tags.LessonSpot,
-		Vector3.new(0.7, 0.12, 0.7),
-		CFrame.new(cageCenter.X, deskTopY + 0.06, cageCenter.Z + 0.6),
+		Vector3.new(0.85, 0.12, 0.85),
+		CFrame.new(cageCenter.X, deskTopY + 0.06, cageCenter.Z + halfZ * 0.35),
 		Color3.fromRGB(90, 140, 200)
 	)
+	lesson.CanCollide = false
 
-	-- Food bowl
+	-- Food bowl (back-left corner)
+	local foodX = cageCenter.X - halfX + 1.1
+	local foodZ = cageCenter.Z - halfZ + 1.0
 	ensurePart(
 		visual,
 		"FoodBowl",
-		Vector3.new(0.55, 0.22, 0.55),
-		CFrame.new(cageCenter.X - 1.1, deskTopY + 0.35, cageCenter.Z - 0.7),
+		Vector3.new(0.6, 0.24, 0.6),
+		CFrame.new(foodX, deskTopY + 0.35, foodZ),
 		P.FoodBowl,
 		Enum.Material.SmoothPlastic,
 		{ shape = Enum.PartType.Cylinder, canCollide = false }
@@ -706,21 +747,21 @@ local function buildPetCage(classroom: Folder)
 	ensurePart(
 		visual,
 		"FoodPellets",
-		Vector3.new(0.35, 0.08, 0.35),
-		CFrame.new(cageCenter.X - 1.1, deskTopY + 0.48, cageCenter.Z - 0.7),
+		Vector3.new(0.38, 0.08, 0.38),
+		CFrame.new(foodX, deskTopY + 0.5, foodZ),
 		Color3.fromRGB(180, 120, 60),
 		Enum.Material.Sand,
 		{ canCollide = false }
 	)
 
 	-- Water bottle on side of cage (+Z face)
-	local bottleX = cageCenter.X + 0.9
+	local bottleX = cageCenter.X + halfX * 0.35
 	local bottleZ = cageCenter.Z + halfZ + 0.15
 	ensurePart(
 		visual,
 		"WaterBottle",
-		Vector3.new(0.45, 1.1, 0.45),
-		CFrame.new(bottleX, deskTopY + 1.35, bottleZ) * CFrame.Angles(0, 0, math.rad(90)),
+		Vector3.new(0.45, 1.2, 0.45),
+		CFrame.new(bottleX, deskTopY + 1.5, bottleZ) * CFrame.Angles(0, 0, math.rad(90)),
 		P.WaterBottle,
 		Enum.Material.Glass,
 		{ shape = Enum.PartType.Cylinder, canCollide = false, transparency = 0.25 }
@@ -729,7 +770,7 @@ local function buildPetCage(classroom: Folder)
 		visual,
 		"WaterCap",
 		Vector3.new(0.4, 0.2, 0.4),
-		CFrame.new(bottleX, deskTopY + 1.95, bottleZ),
+		CFrame.new(bottleX, deskTopY + 2.15, bottleZ),
 		P.WaterCap,
 		Enum.Material.SmoothPlastic,
 		{ shape = Enum.PartType.Cylinder, canCollide = false }
@@ -738,7 +779,7 @@ local function buildPetCage(classroom: Folder)
 		visual,
 		"WaterNozzle",
 		Vector3.new(0.12, 0.45, 0.12),
-		CFrame.new(bottleX, deskTopY + 0.85, bottleZ - 0.2),
+		CFrame.new(bottleX, deskTopY + 0.95, bottleZ - 0.2),
 		P.WaterNozzle,
 		Enum.Material.Metal,
 		{ shape = Enum.PartType.Cylinder, canCollide = false }
@@ -746,19 +787,22 @@ local function buildPetCage(classroom: Folder)
 	ensurePart(
 		visual,
 		"WaterHolder",
-		Vector3.new(0.15, 0.5, 0.5),
-		CFrame.new(bottleX, deskTopY + 1.5, cageCenter.Z + halfZ - 0.05),
+		Vector3.new(0.15, 0.55, 0.5),
+		CFrame.new(bottleX, deskTopY + 1.65, cageCenter.Z + halfZ - 0.05),
 		P.CagePlastic,
 		Enum.Material.SmoothPlastic,
 		{ canCollide = false }
 	)
 
-	-- Wheel: ring + stand on −Z side of cage
+	-- Wheel: ring + stand on −Z side of cage (scales with enclosure)
+	local wheelX = cageCenter.X + halfX * 0.2
+	local wheelZ = cageCenter.Z - halfZ + 0.55
+	local wheelY = deskTopY + 1.15
 	ensurePart(
 		visual,
 		"WheelRing",
-		Vector3.new(1.4, 1.4, 0.12),
-		CFrame.new(cageCenter.X + 0.4, deskTopY + 0.95, cageCenter.Z - halfZ + 0.35) * CFrame.Angles(0, 0, math.rad(90)),
+		Vector3.new(1.6, 1.6, 0.14),
+		CFrame.new(wheelX, wheelY, wheelZ) * CFrame.Angles(0, 0, math.rad(90)),
 		P.Wheel,
 		Enum.Material.SmoothPlastic,
 		{ shape = Enum.PartType.Cylinder, canCollide = false }
@@ -766,8 +810,8 @@ local function buildPetCage(classroom: Folder)
 	ensurePart(
 		visual,
 		"WheelHub",
-		Vector3.new(0.25, 0.25, 0.2),
-		CFrame.new(cageCenter.X + 0.4, deskTopY + 0.95, cageCenter.Z - halfZ + 0.35),
+		Vector3.new(0.28, 0.28, 0.22),
+		CFrame.new(wheelX, wheelY, wheelZ),
 		Color3.fromRGB(255, 200, 220),
 		Enum.Material.SmoothPlastic,
 		{ shape = Enum.PartType.Ball, canCollide = false }
@@ -775,8 +819,8 @@ local function buildPetCage(classroom: Folder)
 	ensurePart(
 		visual,
 		"WheelStand",
-		Vector3.new(0.15, 0.9, 0.15),
-		CFrame.new(cageCenter.X + 0.4, deskTopY + 0.55, cageCenter.Z - halfZ + 0.2),
+		Vector3.new(0.15, 1.0, 0.15),
+		CFrame.new(wheelX, deskTopY + 0.6, wheelZ - 0.15),
 		P.CagePlastic,
 		Enum.Material.SmoothPlastic,
 		{ canCollide = false }
