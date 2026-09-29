@@ -1,0 +1,5 @@
+# Tool versions for Hamster Simulator: Class Pet
+# Install: https://github.com/rojo-rbx/rokit — then `rokit install`
+
+[tools]
+rojo = "rojo-rbx/rojo@7.4.4"
