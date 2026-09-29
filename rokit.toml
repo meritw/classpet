@@ -1,5 +1,6 @@
 # Tool versions for Hamster Simulator: Class Pet
 # Install: https://github.com/rojo-rbx/rokit — then `rokit install`
+# Keep CLI in sync with the Studio Rojo plugin (currently 7.7.0).
 
 [tools]
-rojo = "rojo-rbx/rojo@7.4.4"
+rojo = "rojo-rbx/rojo@7.7.0"
