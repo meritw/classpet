@@ -1,0 +1,48 @@
+{
+  "name": "HamsterSimulatorClassPet",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+
+    "Workspace": {
+      "$properties": {
+        "FilteringEnabled": true
+      },
+      "Classroom": {
+        "$className": "Folder",
+        "$attributes": {
+          "ScaffoldNote": "Level markers / geometry live here. Tags: CageVolume, Latch, Phone, DogSpawn, LessonSpot, HideSpot"
+        }
+      }
+    },
+
+    "Lighting": {
+      "$properties": {
+        "Ambient": [0.4, 0.4, 0.45],
+        "Brightness": 2,
+        "ClockTime": 14,
+        "GlobalShadows": true,
+        "OutdoorAmbient": [0.35, 0.35, 0.4]
+      }
+    }
+  }
+}
