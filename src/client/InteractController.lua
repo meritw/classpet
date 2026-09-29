@@ -46,7 +46,7 @@ local function currentInteract(): (Types.InteractKind?, string)
 	if nearestTagged(GameConfig.Tags.Phone, GameConfig.PhoneInteractDistance) then
 		return "Phone", "Press E — Call the dog’s family"
 	end
-	if nearestTagged(GameConfig.Tags.LessonSpot, 14) then
+	if nearestTagged(GameConfig.Tags.LessonSpot, GameConfig.LessonInteractDistance) then
 		return "Lesson", "Press E — Join the lesson (quiz)"
 	end
 	return nil, ""

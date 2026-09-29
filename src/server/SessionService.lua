@@ -14,6 +14,7 @@ local BuffService = require(script.Parent.BuffService)
 local QuizService = require(script.Parent.QuizService)
 local DogAI = require(script.Parent.DogAI)
 local PhoneObjective = require(script.Parent.PhoneObjective)
+local HamsterAvatar = require(script.Parent.HamsterAvatar)
 
 local SessionService = {}
 
@@ -94,8 +95,9 @@ end
 
 local function onPlayerAdded(player: Player)
 	BuffService.InitPlayer(player)
-	player.CharacterAdded:Connect(function()
+	player.CharacterAdded:Connect(function(character)
 		task.defer(function()
+			HamsterAvatar.Apply(character)
 			if PhaseController.IsDay() or not CageService.HasEscapedThisNight(player) then
 				CageService.ReturnToCage(player)
 			end
@@ -104,6 +106,7 @@ local function onPlayerAdded(player: Player)
 		end)
 	end)
 	if player.Character then
+		HamsterAvatar.Apply(player.Character)
 		CageService.InitPlayer(player)
 		PhaseController.NotifyPlayerJoined(player)
 		pushSnapshot(player)
