@@ -1,4 +1,4 @@
--- Client entry. Waits for remotes, then wires UI + interact.
+-- Client entry. Waits for remotes, then wires UI + interact + hamster cam.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -9,12 +9,15 @@ local GoalUI = require(script.Parent.GoalUI)
 local QuizUI = require(script.Parent.QuizUI)
 local InteractController = require(script.Parent.InteractController)
 local PhasePresenter = require(script.Parent.PhasePresenter)
+local HamsterCam = require(script.Parent.HamsterCam)
 
 local remotes = Remotes.GetClient()
 
 GoalUI.Start()
+GoalUI.BindRemotes(remotes)
 QuizUI.Start(remotes)
 PhasePresenter.Start(remotes)
+HamsterCam.Start()
 
 InteractController.Start(remotes, function(hint: string)
 	if hint ~= "" then
@@ -29,7 +32,6 @@ remotes.SessionUpdated.OnClientEvent:Connect(function(snapshot: Types.SessionSna
 end)
 
 remotes.PhaseChanged.OnClientEvent:Connect(function(phase, cycleIndex, goalText)
-	-- SessionUpdated carries buffs; this only refreshes phase chrome if snapshot lags.
 	GoalUI.ApplyPhaseChrome(phase, cycleIndex, goalText)
 end)
 
@@ -50,5 +52,6 @@ remotes.QuizResult.OnClientEvent:Connect(function(result)
 end)
 
 remotes.WinFeedback.OnClientEvent:Connect(function()
-	GoalUI.ShowToast("You called the dog’s family. They can come get him!", 5)
+	GoalUI.ShowWin("You called the dog’s family. They can come get him!")
+	GoalUI.ShowToast("Family is on the way!", 4)
 end)

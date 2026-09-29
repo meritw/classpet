@@ -143,7 +143,7 @@ function SessionService.Start()
 			elseif phase == "Night" then
 				return "Slip the latch. Sneak to the teacher’s desk phone. Call the dog’s family."
 			else
-				return "You called the family — the dog can go home. Replay anytime."
+				return "You called the family — the dog can go home!"
 			end
 		end,
 	})
@@ -151,6 +151,12 @@ function SessionService.Start()
 	QuizService.WireRemotes()
 	remotes.RequestInteract.OnServerEvent:Connect(handleInteract)
 	remotes.RequestSugarDash.OnServerEvent:Connect(handleSugarDash)
+	remotes.RequestReplay.OnServerEvent:Connect(function(_player: Player)
+		-- StartDay → OnPhaseChanged already resets cage/dog/buffs; just refresh HUD.
+		if PhaseController.RequestReplay() then
+			pushAll()
+		end
+	end)
 
 	CageService.Start()
 	DogAI.Start()

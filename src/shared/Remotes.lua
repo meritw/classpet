@@ -20,6 +20,7 @@ local RemoteNames = {
 	SubmitQuizAnswer = "SubmitQuizAnswer", -- questionId, choiceIndex
 	RequestQuiz = "RequestQuiz", -- optional; lesson spot / teacher prompt
 	RequestSugarDash = "RequestSugarDash", -- consume SugarDash charge if available
+	RequestReplay = "RequestReplay", -- post-win restart cycle (overnight lock)
 }
 
 local function getFolder(): Folder

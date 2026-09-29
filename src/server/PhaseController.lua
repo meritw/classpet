@@ -25,7 +25,7 @@ local remotes = nil :: any
 local GOAL = {
 	Day = "Play along — ace quizzes for night buffs. Night comes on its own.",
 	Night = "Slip the latch. Sneak to the teacher’s desk phone. Call the dog’s family.",
-	Won = "You called the family — the dog can go home. Replay anytime.",
+	Won = "You called the family — the dog can go home!",
 }
 
 function PhaseController.GetPhase(): Types.Phase
@@ -56,18 +56,46 @@ function PhaseController.HasWon(): boolean
 end
 
 local function applyLighting(nextPhase: Types.Phase)
+	local cc = Lighting:FindFirstChild("ClassPetColorCorrection")
 	if nextPhase == "Day" then
-		Lighting.ClockTime = 14
-		Lighting.Brightness = 2
-		Lighting.Ambient = Color3.fromRGB(102, 102, 115)
+		-- Bright POLYGON classroom (Kids Pack vibe)
+		Lighting.ClockTime = 14.5
+		Lighting.Brightness = 2.4
+		Lighting.Ambient = Color3.fromRGB(145, 145, 155)
+		Lighting.OutdoorAmbient = Color3.fromRGB(160, 165, 175)
+		Lighting.FogEnd = 100000
+		if cc and cc:IsA("ColorCorrectionEffect") then
+			cc.Brightness = 0.04
+			cc.Contrast = 0.08
+			cc.Saturation = 0.15
+			cc.TintColor = Color3.fromRGB(255, 255, 255)
+		end
 	elseif nextPhase == "Night" then
-		Lighting.ClockTime = 22
-		Lighting.Brightness = 0.6
-		Lighting.Ambient = Color3.fromRGB(40, 40, 55)
+		-- Darker room; phone neon + dog collar still readable
+		Lighting.ClockTime = 22.5
+		Lighting.Brightness = 0.35
+		Lighting.Ambient = Color3.fromRGB(28, 30, 48)
+		Lighting.OutdoorAmbient = Color3.fromRGB(35, 38, 55)
+		Lighting.FogColor = Color3.fromRGB(18, 20, 32)
+		Lighting.FogEnd = 140
+		if cc and cc:IsA("ColorCorrectionEffect") then
+			cc.Brightness = -0.04
+			cc.Contrast = 0.12
+			cc.Saturation = -0.05
+			cc.TintColor = Color3.fromRGB(200, 210, 255)
+		end
 	elseif nextPhase == "Won" then
-		Lighting.ClockTime = 7
-		Lighting.Brightness = 2.5
-		Lighting.Ambient = Color3.fromRGB(130, 120, 100)
+		Lighting.ClockTime = 7.5
+		Lighting.Brightness = 2.6
+		Lighting.Ambient = Color3.fromRGB(150, 135, 110)
+		Lighting.OutdoorAmbient = Color3.fromRGB(170, 150, 120)
+		Lighting.FogEnd = 100000
+		if cc and cc:IsA("ColorCorrectionEffect") then
+			cc.Brightness = 0.06
+			cc.Contrast = 0.05
+			cc.Saturation = 0.2
+			cc.TintColor = Color3.fromRGB(255, 245, 220)
+		end
 	end
 end
 
@@ -164,6 +192,17 @@ function PhaseController.OnPhoneWin()
 	if remotes then
 		remotes.WinFeedback:FireAllClients()
 	end
+end
+
+-- Overnight lock: short win message + Replay restarts the day/night cycle.
+function PhaseController.RequestReplay()
+	if phase ~= "Won" then
+		return false
+	end
+	dayToken += 1
+	cycleIndex = 1
+	PhaseController.StartDay({ bumpCycle = false, reason = "Replay" })
+	return true
 end
 
 function PhaseController.NotifyPlayerJoined(player: Player)
