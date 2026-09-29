@@ -28,7 +28,7 @@ You **are** the hamster (tiny avatar). The cage is a desk-pet enclosure; the cla
 
 3. In Roblox Studio: install the [Rojo plugin](https://rojo.space/docs/v7/getting-started/installation/) **7.7.0** → **Connect** to the default address (`localhost:34872`).
 
-4. Press **Play** (solo). Placeholder classroom + pet cage are created at runtime if missing (`CageVolume`, `Latch`, `LessonSpot`, `Phone`, `DogSpawn`, room shell, desks).
+4. Press **Play** (solo). Placeholder classroom + pet cage are created at runtime if missing (`CageVolume`, `Latch`, `LessonSpot`, `Phone`, `DogSpawn`, room shell, desks, set dressing). Player gets a lightweight `HamsterDress` silhouette on the scaled avatar.
 
 ### Build a place file (optional)
 

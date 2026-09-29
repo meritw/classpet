@@ -1,6 +1,6 @@
 -- Dog patrol / chase. Catch → CageService return + PhaseController.OnDogCatch
 -- (next day; no same-night re-escape). Detect range modified by QuietPaws.
--- Visual: POLYGON Dog Pack stand-in (friendly Labrador-ish blockout).
+-- Visual: POLYGON Dog Pack stand-in (friendly Labrador-ish Parts silhouette).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -24,8 +24,57 @@ local patrolTarget: Vector3? = nil
 local chasePlayer: Player? = nil
 local catchLock = false
 
+-- Local offsets from Body (PrimaryPart). Keep in sync with ensureDogModel.
+local PART_OFFSETS: { [string]: CFrame } = {
+	Body = CFrame.new(),
+	Chest = CFrame.new(0, -0.05, -0.85),
+	Belly = CFrame.new(0, -0.55, 0.15),
+	Head = CFrame.new(0, 0.65, -2.05),
+	Snout = CFrame.new(0, 0.4, -2.7),
+	Nose = CFrame.new(0, 0.42, -3.05),
+	Jaw = CFrame.new(0, 0.15, -2.55),
+	EyeL = CFrame.new(-0.35, 0.8, -2.35),
+	EyeR = CFrame.new(0.35, 0.8, -2.35),
+	EarL = CFrame.new(-0.55, 1.25, -1.85) * CFrame.Angles(0, 0, math.rad(18)),
+	EarR = CFrame.new(0.55, 1.25, -1.85) * CFrame.Angles(0, 0, math.rad(-18)),
+	Collar = CFrame.new(0, 0.4, -1.45),
+	Neck = CFrame.new(0, 0.35, -1.55),
+	Tail = CFrame.new(0, 0.35, 1.95) * CFrame.Angles(math.rad(25), 0, 0),
+	TailTip = CFrame.new(0, 0.7, 2.55) * CFrame.Angles(math.rad(40), 0, 0),
+	LegFL = CFrame.new(-0.65, -1.05, -1.0),
+	LegFR = CFrame.new(0.65, -1.05, -1.0),
+	LegBL = CFrame.new(-0.7, -1.05, 1.05),
+	LegBR = CFrame.new(0.7, -1.05, 1.05),
+	PawFL = CFrame.new(-0.65, -1.55, -1.15),
+	PawFR = CFrame.new(0.65, -1.55, -1.15),
+	PawBL = CFrame.new(-0.7, -1.55, 1.2),
+	PawBR = CFrame.new(0.7, -1.55, 1.2),
+}
+
 local function parentFolder(): Instance
 	return Workspace:FindFirstChild("Classroom") or Workspace
+end
+
+local function makePart(
+	model: Model,
+	name: string,
+	size: Vector3,
+	color: Color3,
+	shape: Enum.PartType?
+): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.Color = color
+	part.Material = Enum.Material.SmoothPlastic
+	part.Anchored = true
+	part.CanCollide = false
+	part.CastShadow = true
+	if shape then
+		part.Shape = shape
+	end
+	part.Parent = model
+	return part
 end
 
 local function ensureDogModel(): BasePart
@@ -35,82 +84,46 @@ local function ensureDogModel(): BasePart
 
 	local spawn = LevelSetup.GetFirstTagged(GameConfig.Tags.DogSpawn)
 	local origin = if spawn and spawn:IsA("BasePart") then spawn.CFrame else CFrame.new(8, 1.5, 12)
-	-- Sit body on floor (Y≈1.2 for lab-sized placeholder)
-	origin = CFrame.new(origin.Position.X, 1.35, origin.Position.Z)
+	-- Sit body on floor (Y≈1.55 for lab-sized placeholder with legs)
+	origin = CFrame.new(origin.Position.X, 1.55, origin.Position.Z)
 
 	local model = Instance.new("Model")
 	model.Name = "ClassDog"
 
 	local P = ArtPalette
-	local body = Instance.new("Part")
-	body.Name = "Body"
-	body.Size = Vector3.new(2.2, 1.4, 3.4)
-	body.Color = P.DogFur
-	body.Material = Enum.Material.SmoothPlastic
-	body.Anchored = true
-	body.CanCollide = false
+	local body = makePart(model, "Body", Vector3.new(1.9, 1.35, 2.8), P.DogFur)
 	body.CFrame = origin
-	body.Parent = model
 
-	local head = Instance.new("Part")
-	head.Name = "Head"
-	head.Size = Vector3.new(1.3, 1.2, 1.3)
-	head.Color = P.DogFur
-	head.Material = Enum.Material.SmoothPlastic
-	head.Anchored = true
-	head.CanCollide = false
-	head.CFrame = origin * CFrame.new(0, 0.55, -1.9)
-	head.Parent = model
+	makePart(model, "Chest", Vector3.new(2.05, 1.45, 1.4), P.DogFur)
+	makePart(model, "Belly", Vector3.new(1.5, 0.55, 2.2), P.DogFurLight)
+	makePart(model, "Neck", Vector3.new(1.1, 0.9, 0.9), P.DogFur, Enum.PartType.Ball)
+	makePart(model, "Head", Vector3.new(1.35, 1.25, 1.35), P.DogFur, Enum.PartType.Ball)
+	makePart(model, "Snout", Vector3.new(0.75, 0.55, 0.85), P.DogFurLight)
+	makePart(model, "Jaw", Vector3.new(0.65, 0.3, 0.55), P.DogFurDark)
+	makePart(model, "Nose", Vector3.new(0.32, 0.28, 0.28), P.DogNose, Enum.PartType.Ball)
+	makePart(model, "EyeL", Vector3.new(0.22, 0.22, 0.18), P.DogEye, Enum.PartType.Ball)
+	makePart(model, "EyeR", Vector3.new(0.22, 0.22, 0.18), P.DogEye, Enum.PartType.Ball)
+	makePart(model, "EarL", Vector3.new(0.4, 0.85, 0.25), P.DogFurDark)
+	makePart(model, "EarR", Vector3.new(0.4, 0.85, 0.25), P.DogFurDark)
 
-	local snout = Instance.new("Part")
-	snout.Name = "Snout"
-	snout.Size = Vector3.new(0.7, 0.55, 0.7)
-	snout.Color = P.DogFurDark
-	snout.Material = Enum.Material.SmoothPlastic
-	snout.Anchored = true
-	snout.CanCollide = false
-	snout.CFrame = origin * CFrame.new(0, 0.35, -2.55)
-	snout.Parent = model
-
-	local nose = Instance.new("Part")
-	nose.Name = "Nose"
-	nose.Shape = Enum.PartType.Ball
-	nose.Size = Vector3.new(0.35, 0.35, 0.35)
-	nose.Color = P.DogNose
-	nose.Material = Enum.Material.SmoothPlastic
-	nose.Anchored = true
-	nose.CanCollide = false
-	nose.CFrame = origin * CFrame.new(0, 0.4, -2.9)
-	nose.Parent = model
-
-	local collar = Instance.new("Part")
-	collar.Name = "Collar"
-	collar.Size = Vector3.new(1.45, 0.25, 1.45)
-	collar.Color = P.DogCollar
+	local collar = makePart(model, "Collar", Vector3.new(1.5, 0.28, 1.5), P.DogCollar)
 	collar.Material = Enum.Material.Neon
-	collar.Anchored = true
-	collar.CanCollide = false
-	collar.CFrame = origin * CFrame.new(0, 0.35, -1.35)
-	collar.Parent = model
 
-	local earL = Instance.new("Part")
-	earL.Name = "EarL"
-	earL.Size = Vector3.new(0.35, 0.7, 0.2)
-	earL.Color = P.DogFurDark
-	earL.Anchored = true
-	earL.CanCollide = false
-	earL.CFrame = origin * CFrame.new(-0.45, 1.2, -1.7)
-	earL.Parent = model
+	makePart(model, "Tail", Vector3.new(0.35, 0.35, 1.1), P.DogFurDark)
+	makePart(model, "TailTip", Vector3.new(0.3, 0.3, 0.7), P.DogFur)
 
-	local earR = earL:Clone()
-	earR.Name = "EarR"
-	earR.CFrame = origin * CFrame.new(0.45, 1.2, -1.7)
-	earR.Parent = model
+	-- Legs + paws
+	for _, name in { "LegFL", "LegFR", "LegBL", "LegBR" } do
+		makePart(model, name, Vector3.new(0.45, 1.1, 0.5), P.DogFurDark)
+	end
+	for _, name in { "PawFL", "PawFR", "PawBL", "PawBR" } do
+		makePart(model, name, Vector3.new(0.5, 0.28, 0.65), P.DogPaw)
+	end
 
 	local tag = Instance.new("BillboardGui")
 	tag.Name = "DogLabel"
 	tag.Size = UDim2.fromOffset(120, 28)
-	tag.StudsOffset = Vector3.new(0, 2.2, 0)
+	tag.StudsOffset = Vector3.new(0, 2.6, 0)
 	tag.AlwaysOnTop = true
 	tag.Parent = body
 	local label = Instance.new("TextLabel")
@@ -139,16 +152,7 @@ local function syncDogParts(rootCf: CFrame)
 	if not model then
 		return
 	end
-	local map = {
-		Body = CFrame.new(),
-		Head = CFrame.new(0, 0.55, -1.9),
-		Snout = CFrame.new(0, 0.35, -2.55),
-		Nose = CFrame.new(0, 0.4, -2.9),
-		Collar = CFrame.new(0, 0.35, -1.35),
-		EarL = CFrame.new(-0.45, 1.2, -1.7),
-		EarR = CFrame.new(0.45, 1.2, -1.7),
-	}
-	for name, offset in map do
+	for name, offset in PART_OFFSETS do
 		local part = model:FindFirstChild(name)
 		if part and part:IsA("BasePart") then
 			part.CFrame = rootCf * offset
@@ -158,7 +162,7 @@ end
 
 local function setDogCFrame(pos: Vector3, lookFlat: Vector3?)
 	local body = ensureDogModel()
-	local y = 1.35
+	local y = 1.55
 	local at = Vector3.new(pos.X, y, pos.Z)
 	local cf: CFrame
 	if lookFlat and lookFlat.Magnitude > 0.05 then
@@ -173,7 +177,7 @@ end
 
 local function pickPatrolPoint(from: Vector3): Vector3
 	local offset = Vector3.new(math.random(-22, 22), 0, math.random(-18, 18))
-	return Vector3.new(from.X, 1.35, from.Z) + offset
+	return Vector3.new(from.X, 1.55, from.Z) + offset
 end
 
 local function nearestEscapedPlayer(dogPos: Vector3): (Player?, number)
@@ -231,7 +235,7 @@ local function setDogVisible(night: boolean)
 				child.Transparency = 0
 			else
 				-- Day: parked / quieter — still readable silhouette
-				child.Transparency = if child.Name == "Collar" then 0.2 else 0.45
+				child.Transparency = if child.Name == "Collar" then 0.15 else 0.4
 			end
 		end
 	end
@@ -293,7 +297,7 @@ function DogAI.OnNightStarted()
 	catchLock = false
 	chasePlayer = nil
 	local spawn = LevelSetup.GetFirstTagged(GameConfig.Tags.DogSpawn)
-	local pos = if spawn and spawn:IsA("BasePart") then spawn.Position else Vector3.new(8, 1.35, 12)
+	local pos = if spawn and spawn:IsA("BasePart") then spawn.Position else Vector3.new(8, 1.55, 12)
 	setDogCFrame(pos, Vector3.new(-1, 0, 0))
 	setDogVisible(true)
 	patrolTarget = pickPatrolPoint(pos)

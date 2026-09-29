@@ -5,6 +5,7 @@
 -- Scale contract (do not fight — from hamster-scale PR):
 --   GameConfig.CageSize / CageCenter / HamsterDesk / HamsterScale
 -- Visual pass adds POLYGON-style shell + custom pet cage dressing around those sizes.
+-- Overnight polish: richer Parts set dressing (no Synty FBX in repo).
 
 local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
@@ -129,12 +130,67 @@ local function ensurePointLight(parent: BasePart, name: string, color: Color3, b
 	return light
 end
 
+local function ensureSurfaceGuiLabel(parent: BasePart, name: string, text: string, textSize: number)
+	local gui = parent:FindFirstChild(name)
+	if not gui or not gui:IsA("SurfaceGui") then
+		if gui then
+			gui:Destroy()
+		end
+		gui = Instance.new("SurfaceGui")
+		gui.Name = name
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.Parent = parent
+	end
+	local label = gui:FindFirstChild("Label")
+	if not label or not label:IsA("TextLabel") then
+		if label then
+			label:Destroy()
+		end
+		label = Instance.new("TextLabel")
+		label.Name = "Label"
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.Font = Enum.Font.FredokaOne
+		label.TextColor3 = Color3.fromRGB(50, 70, 110)
+		label.TextScaled = false
+		label.Parent = gui
+	end
+	label.Text = text
+	label.TextSize = textSize
+	return gui
+end
+
 local function buildClassroomShell(classroom: Folder)
 	local shell = ensureModel(classroom, "RoomShell")
 	local P = ArtPalette
 
-	-- Floor (human classroom)
+	-- Subfloor (human classroom)
 	ensurePart(shell, "Floor", Vector3.new(80, 1, 60), CFrame.new(0, 0, 0), P.Floor, Enum.Material.WoodPlanks)
+
+	-- Checkerboard floor tiles (readable classroom linoleum / vinyl vibe)
+	local tiles = ensureModel(shell, "FloorTiles")
+	local tileW, tileD = 5, 5
+	local cols, rows = 14, 10
+	local originX = -((cols - 1) * tileW) * 0.5
+	local originZ = -((rows - 1) * tileD) * 0.5
+	for row = 0, rows - 1 do
+		for col = 0, cols - 1 do
+			local light = ((row + col) % 2) == 0
+			local x = originX + col * tileW
+			local z = originZ + row * tileD
+			ensurePart(
+				tiles,
+				`Tile_{row}_{col}`,
+				Vector3.new(tileW - 0.08, 0.06, tileD - 0.08),
+				CFrame.new(x, 0.53, z),
+				if light then P.FloorTileA else P.FloorTileB,
+				Enum.Material.SmoothPlastic,
+				{ canCollide = false }
+			)
+		end
+	end
 
 	-- Walls: N(-Z) S(+Z) W(-X) E(+X). Height ~12 studs.
 	local wallH = 12
@@ -150,10 +206,16 @@ local function buildClassroomShell(classroom: Folder)
 	ensurePart(shell, "Wainscot_W", Vector3.new(0.2, 1.2, 59.5), CFrame.new(-39.4, 2.1, 0), P.WallAccent, Enum.Material.SmoothPlastic, { canCollide = false })
 	ensurePart(shell, "Wainscot_E", Vector3.new(0.2, 1.2, 59.5), CFrame.new(39.4, 2.1, 0), P.WallAccent, Enum.Material.SmoothPlastic, { canCollide = false })
 
+	-- Wood baseboard trim
+	ensurePart(shell, "Trim_N", Vector3.new(79.5, 0.35, 0.18), CFrame.new(0, 0.75, -29.35), P.FloorTrim, Enum.Material.Wood, { canCollide = false })
+	ensurePart(shell, "Trim_S", Vector3.new(79.5, 0.35, 0.18), CFrame.new(0, 0.75, 29.35), P.FloorTrim, Enum.Material.Wood, { canCollide = false })
+	ensurePart(shell, "Trim_W", Vector3.new(0.18, 0.35, 59.5), CFrame.new(-39.35, 0.75, 0), P.FloorTrim, Enum.Material.Wood, { canCollide = false })
+	ensurePart(shell, "Trim_E", Vector3.new(0.18, 0.35, 59.5), CFrame.new(39.35, 0.75, 0), P.FloorTrim, Enum.Material.Wood, { canCollide = false })
+
 	-- Ceiling
 	ensurePart(shell, "Ceiling", Vector3.new(80, 1, 60), CFrame.new(0, wallH + 1, 0), P.Ceiling, Enum.Material.SmoothPlastic)
 
-	-- Windows on +X wall (day light reads through)
+	-- Windows on +X wall (day light reads through) + blinds
 	for i = 1, 3 do
 		local z = -16 + (i - 1) * 16
 		ensurePart(shell, `WindowFrame_{i}`, Vector3.new(0.4, 5, 8), CFrame.new(39.6, 6, z), P.WindowFrame, Enum.Material.SmoothPlastic, { canCollide = false })
@@ -162,6 +224,20 @@ local function buildClassroomShell(classroom: Folder)
 			transparency = 0.45,
 		})
 		ensurePointLight(glass, "DayWindowGlow", Color3.fromRGB(255, 245, 220), 0.35, 18)
+		-- Horizontal blind slats (partially open)
+		for s = 1, 6 do
+			local y = 4.1 + (s - 1) * 0.7
+			ensurePart(
+				shell,
+				`Blind_{i}_{s}`,
+				Vector3.new(0.12, 0.12, 7),
+				CFrame.new(39.45, y, z),
+				if s % 2 == 0 then P.Blind else P.BlindSlat,
+				Enum.Material.SmoothPlastic,
+				{ canCollide = false }
+			)
+		end
+		ensurePart(shell, `BlindHeader_{i}`, Vector3.new(0.2, 0.25, 7.4), CFrame.new(39.45, 8.3, z), P.WindowFrame, Enum.Material.SmoothPlastic, { canCollide = false })
 	end
 
 	-- Door on -Z wall
@@ -171,6 +247,44 @@ local function buildClassroomShell(classroom: Folder)
 		canCollide = false,
 		shape = Enum.PartType.Ball,
 	})
+end
+
+local function buildCeilingLights(classroom: Folder)
+	local lights = ensureModel(classroom, "CeilingLights")
+	local P = ArtPalette
+	local positions = {
+		Vector3.new(-18, 12.2, -12),
+		Vector3.new(0, 12.2, -12),
+		Vector3.new(18, 12.2, -12),
+		Vector3.new(-18, 12.2, 8),
+		Vector3.new(0, 12.2, 8),
+		Vector3.new(18, 12.2, 8),
+	}
+	for i, pos in positions do
+		local fixture = ensurePart(
+			lights,
+			`Fixture_{i}`,
+			Vector3.new(6, 0.25, 1.4),
+			CFrame.new(pos),
+			P.CeilingFixture,
+			Enum.Material.SmoothPlastic,
+			{ canCollide = false }
+		)
+		local lamp = ensurePart(
+			lights,
+			`Lamp_{i}`,
+			Vector3.new(5.4, 0.12, 1),
+			CFrame.new(pos + Vector3.new(0, -0.2, 0)),
+			P.CeilingLamp,
+			Enum.Material.Neon,
+			{ canCollide = false }
+		)
+		local light = ensurePointLight(lamp, "CeilingGlow", Color3.fromRGB(255, 245, 220), 1.1, 28)
+		light:SetAttribute("ClassPetDayBrightness", 1.1)
+		light:SetAttribute("ClassPetNightBrightness", 0.08)
+		fixture:SetAttribute("ClassPetCeilingLight", true)
+		lamp:SetAttribute("ClassPetCeilingLight", true)
+	end
 end
 
 local function buildBoardsAndTeacherZone(classroom: Folder)
@@ -183,7 +297,41 @@ local function buildBoardsAndTeacherZone(classroom: Folder)
 	ensurePart(zone, "ChalkTray", Vector3.new(16, 0.25, 0.45), CFrame.new(-6, 3.9, -28.9), P.ChalkTray, Enum.Material.SmoothPlastic)
 
 	-- Bulletin board accent
-	ensurePart(zone, "BulletinBoard", Vector3.new(6, 4, 0.3), CFrame.new(8, 6.5, -29.2), Color3.fromRGB(255, 230, 140), Enum.Material.Cardboard)
+	local bulletin = ensurePart(zone, "BulletinBoard", Vector3.new(6, 4, 0.3), CFrame.new(8, 6.5, -29.2), Color3.fromRGB(255, 230, 140), Enum.Material.Cardboard)
+	ensureSurfaceGuiLabel(bulletin, "BulletinLabel", "Class News!", 28)
+
+	-- Wall clock above door-side
+	local clock = ensureModel(zone, "WallClock")
+	-- Cylinder default axis is +X; rotate Y so flat face points into room (+Z from -Z wall).
+	local clockCf = CFrame.new(14, 10.2, -29.15) * CFrame.Angles(0, math.rad(90), 0)
+	ensurePart(clock, "Face", Vector3.new(0.15, 1.8, 1.8), clockCf, P.ClockFace, Enum.Material.SmoothPlastic, {
+		canCollide = false,
+		shape = Enum.PartType.Cylinder,
+	})
+	ensurePart(clock, "Rim", Vector3.new(0.08, 2.05, 2.05), CFrame.new(14, 10.2, -29.25) * CFrame.Angles(0, math.rad(90), 0), P.ClockRim, Enum.Material.Metal, {
+		canCollide = false,
+		shape = Enum.PartType.Cylinder,
+	})
+	ensurePart(clock, "HandHour", Vector3.new(0.08, 0.55, 0.05), CFrame.new(14, 10.35, -29.05), P.ClockHand, Enum.Material.SmoothPlastic, { canCollide = false })
+	ensurePart(clock, "HandMinute", Vector3.new(0.06, 0.75, 0.05), CFrame.new(14.15, 10.45, -29.05), P.ClockHand, Enum.Material.SmoothPlastic, { canCollide = false })
+	ensurePart(clock, "Center", Vector3.new(0.18, 0.18, 0.12), CFrame.new(14, 10.2, -29.02), P.ClockRim, Enum.Material.Metal, {
+		canCollide = false,
+		shape = Enum.PartType.Ball,
+	})
+
+	-- Educational posters on side walls
+	local posters = ensureModel(zone, "Posters")
+	local posterSpecs = {
+		{ name = "Poster_Alphabet", cf = CFrame.new(-39.55, 7.5, -10) * CFrame.Angles(0, math.rad(90), 0), text = "A B C", color = Color3.fromRGB(255, 220, 200) },
+		{ name = "Poster_Numbers", cf = CFrame.new(-39.55, 7.5, 8) * CFrame.Angles(0, math.rad(90), 0), text = "1 2 3", color = Color3.fromRGB(200, 230, 255) },
+		{ name = "Poster_Hamster", cf = CFrame.new(-39.55, 7.2, 18) * CFrame.Angles(0, math.rad(90), 0), text = "Class Pet!", color = Color3.fromRGB(255, 235, 180) },
+		{ name = "Poster_Rules", cf = CFrame.new(12, 8, 29.55), text = "Be Kind", color = Color3.fromRGB(220, 255, 220) },
+	}
+	for _, spec in posterSpecs do
+		ensurePart(posters, `{spec.name}_Frame`, Vector3.new(3.4, 2.6, 0.12), spec.cf * CFrame.new(0, 0, 0.05), P.PosterFrame, Enum.Material.Wood, { canCollide = false })
+		local paper = ensurePart(posters, spec.name, Vector3.new(3, 2.2, 0.08), spec.cf, spec.color, Enum.Material.Cardboard, { canCollide = false })
+		ensureSurfaceGuiLabel(paper, "PosterText", spec.text, 42)
+	end
 
 	-- Teacher desk (Office Pack proportion) toward +X / -Z corner
 	local deskCf = CFrame.new(28, 2.1, -20)
@@ -192,25 +340,119 @@ local function buildBoardsAndTeacherZone(classroom: Folder)
 	ensurePart(zone, "TeacherDeskLeg_R", Vector3.new(0.4, 3.2, 0.4), CFrame.new(31, 1.6, -18.5), P.DeskLeg, Enum.Material.Metal)
 	ensurePart(zone, "TeacherDeskLeg_L2", Vector3.new(0.4, 3.2, 0.4), CFrame.new(25, 1.6, -18.5), P.DeskLeg, Enum.Material.Metal)
 	ensurePart(zone, "TeacherDeskLeg_R2", Vector3.new(0.4, 3.2, 0.4), CFrame.new(31, 1.6, -21.5), P.DeskLeg, Enum.Material.Metal)
+	-- Desk clutter
+	ensurePart(zone, "DeskPaperStack", Vector3.new(1.4, 0.15, 1.1), CFrame.new(26.2, 2.4, -20.5), Color3.fromRGB(245, 245, 240), Enum.Material.Cardboard, { canCollide = false })
+	ensurePart(zone, "DeskMug", Vector3.new(0.45, 0.55, 0.45), CFrame.new(27.2, 2.55, -18.6), Color3.fromRGB(80, 140, 180), Enum.Material.SmoothPlastic, {
+		canCollide = false,
+		shape = Enum.PartType.Cylinder,
+	})
 
-	-- Desk phone on teacher desk (Police Station phone stand-in) — tagged Phone
+	-- Desk phone on teacher desk — landline silhouette (tagged Phone is the interactable base)
 	local phone = ensureTaggedPart(
 		classroom,
 		"Phone",
 		GameConfig.Tags.Phone,
-		Vector3.new(1.2, 0.45, 0.9),
-		CFrame.new(30, 2.55, -19.2),
-		P.PhoneBody
+		Vector3.new(1.6, 0.35, 1.1),
+		CFrame.new(30, 2.48, -19.2),
+		P.PhoneBase
 	)
 	phone.Material = Enum.Material.SmoothPlastic
-	-- Handset + ready light as sibling decorations (not the tagged interactable)
+
 	local phoneProp = ensureModel(classroom, "PhoneProps")
-	ensurePart(phoneProp, "Handset", Vector3.new(0.35, 0.25, 0.9), CFrame.new(29.3, 2.85, -19.2), P.PhoneHandset, Enum.Material.SmoothPlastic, { canCollide = false })
-	local ready = ensurePart(phoneProp, "ReadyLight", Vector3.new(0.2, 0.2, 0.2), CFrame.new(30.5, 2.85, -18.9), P.PhoneAccent, Enum.Material.Neon, {
+	-- Raised keypad wedge
+	ensurePart(phoneProp, "KeypadBody", Vector3.new(1.35, 0.22, 0.85), CFrame.new(30.05, 2.72, -19.05) * CFrame.Angles(math.rad(-12), 0, 0), P.PhoneBody, Enum.Material.SmoothPlastic, { canCollide = false })
+	-- 3x4 button grid
+	local btn = 0
+	for row = 0, 3 do
+		for col = 0, 2 do
+			btn += 1
+			local bx = 29.55 + col * 0.32
+			local bz = -19.35 + row * 0.22
+			ensurePart(
+				phoneProp,
+				`Key_{btn}`,
+				Vector3.new(0.22, 0.06, 0.16),
+				CFrame.new(bx, 2.86, bz),
+				P.PhoneButton,
+				Enum.Material.SmoothPlastic,
+				{ canCollide = false }
+			)
+		end
+	end
+	-- Cradle + handset (classic landline read)
+	ensurePart(phoneProp, "Cradle", Vector3.new(1.5, 0.2, 0.35), CFrame.new(29.95, 2.78, -19.7), P.PhoneBody, Enum.Material.SmoothPlastic, { canCollide = false })
+	ensurePart(phoneProp, "Handset", Vector3.new(1.35, 0.28, 0.32), CFrame.new(29.95, 3.05, -19.7), P.PhoneHandset, Enum.Material.SmoothPlastic, { canCollide = false })
+	ensurePart(phoneProp, "HandsetEar", Vector3.new(0.35, 0.35, 0.35), CFrame.new(29.35, 3.1, -19.7), P.PhoneHandset, Enum.Material.SmoothPlastic, {
+		canCollide = false,
+		shape = Enum.PartType.Ball,
+	})
+	ensurePart(phoneProp, "HandsetMouth", Vector3.new(0.35, 0.35, 0.35), CFrame.new(30.55, 3.1, -19.7), P.PhoneHandset, Enum.Material.SmoothPlastic, {
+		canCollide = false,
+		shape = Enum.PartType.Ball,
+	})
+	-- Coiled cord hint
+	ensurePart(phoneProp, "Cord", Vector3.new(0.08, 0.08, 0.9), CFrame.new(30.55, 2.7, -19.45), P.PhoneCord, Enum.Material.SmoothPlastic, { canCollide = false })
+	local ready = ensurePart(phoneProp, "ReadyLight", Vector3.new(0.18, 0.18, 0.18), CFrame.new(30.7, 2.9, -18.7), P.PhoneAccent, Enum.Material.Neon, {
 		canCollide = false,
 		shape = Enum.PartType.Ball,
 	})
 	ensurePointLight(ready, "PhoneGlow", P.PhoneAccent, 1.2, 10)
+end
+
+local function buildBookshelves(classroom: Folder)
+	local shelves = ensureModel(classroom, "Bookshelves")
+	local P = ArtPalette
+	-- Back wall (+Z) bookshelf near classroom rear
+	ensurePart(shelves, "ShelfUnit", Vector3.new(8, 6, 1.2), CFrame.new(-22, 3.5, 28.8), P.ShelfWood, Enum.Material.Wood)
+	for row = 1, 4 do
+		local y = 1.2 + (row - 1) * 1.35
+		ensurePart(shelves, `ShelfBoard_{row}`, Vector3.new(7.6, 0.15, 1), CFrame.new(-22, y, 28.8), P.ShelfWood, Enum.Material.Wood, { canCollide = false })
+		local spines = { P.BookSpineA, P.BookSpineB, P.BookSpineC, P.BookSpineD }
+		for b = 1, 10 do
+			local color = spines[((b + row) % 4) + 1]
+			local h = 0.7 + ((b + row) % 3) * 0.15
+			ensurePart(
+				shelves,
+				`Book_{row}_{b}`,
+				Vector3.new(0.55, h, 0.85),
+				CFrame.new(-25.2 + (b - 1) * 0.7, y + 0.1 + h * 0.5, 28.75),
+				color,
+				Enum.Material.SmoothPlastic,
+				{ canCollide = false }
+			)
+		end
+	end
+	-- Small shelf near hamster desk (classroom pet corner)
+	ensurePart(shelves, "PetCornerShelf", Vector3.new(3.5, 3.5, 1), CFrame.new(-32, 2.5, -8), P.ShelfWood, Enum.Material.Wood)
+	for b = 1, 5 do
+		local spines = { P.BookSpineB, P.BookSpineC, P.BookSpineA, P.BookSpineD, P.BookSpineB }
+		ensurePart(
+			shelves,
+			`PetShelfBook_{b}`,
+			Vector3.new(0.45, 0.9, 0.7),
+			CFrame.new(-33.2 + (b - 1) * 0.55, 3.2, -8),
+			spines[b],
+			Enum.Material.SmoothPlastic,
+			{ canCollide = false }
+		)
+	end
+end
+
+local function buildTrashAndExtras(classroom: Folder)
+	local props = ensureModel(classroom, "RoomExtras")
+	local P = ArtPalette
+	-- Trash can near door
+	ensurePart(props, "TrashCan", Vector3.new(1.4, 2.2, 1.4), CFrame.new(22, 1.6, -26), P.TrashCan, Enum.Material.Metal, {
+		shape = Enum.PartType.Cylinder,
+	})
+	ensurePart(props, "TrashRim", Vector3.new(1.55, 0.15, 1.55), CFrame.new(22, 2.75, -26), P.TrashRim, Enum.Material.Metal, {
+		canCollide = false,
+		shape = Enum.PartType.Cylinder,
+	})
+	-- Recycling bin near back
+	ensurePart(props, "RecycleBin", Vector3.new(1.2, 2, 1.2), CFrame.new(-8, 1.5, 26), Color3.fromRGB(70, 140, 90), Enum.Material.SmoothPlastic, {
+		shape = Enum.PartType.Cylinder,
+	})
 end
 
 local function buildStudentDesks(classroom: Folder)
@@ -228,6 +470,10 @@ local function buildStudentDesks(classroom: Folder)
 			ensurePart(props, `StudentDeskLeg_{i}`, Vector3.new(0.25, 2.1, 0.25), CFrame.new(x, 1.2, z), P.DeskLeg, Enum.Material.Metal)
 			ensurePart(props, `StudentChair_{i}`, Vector3.new(1.6, 0.25, 1.6), CFrame.new(x, 1.55, z + 1.6), P.ChairSeat, Enum.Material.SmoothPlastic)
 			ensurePart(props, `StudentChairBack_{i}`, Vector3.new(1.6, 1.4, 0.2), CFrame.new(x, 2.3, z + 2.3), P.ChairBack, Enum.Material.SmoothPlastic, { canCollide = false })
+			-- Notebook / pencil on a few desks
+			if i % 2 == 1 then
+				ensurePart(props, `Notebook_{i}`, Vector3.new(0.9, 0.08, 1.1), CFrame.new(x + 0.4, 2.55, z), Color3.fromRGB(250, 250, 255), Enum.Material.Cardboard, { canCollide = false })
+			end
 		end
 	end
 
@@ -252,6 +498,7 @@ local function buildStudentDesks(classroom: Folder)
 	-- Backpack clutter (Kids Pack vibe)
 	ensurePart(props, "Backpack_A", Vector3.new(1.2, 1.4, 0.8), CFrame.new(-4, 1.2, -10), P.Backpack, Enum.Material.Fabric, { canCollide = false })
 	ensurePart(props, "Backpack_B", Vector3.new(1.2, 1.4, 0.8), CFrame.new(12, 1.2, 2), Color3.fromRGB(60, 120, 200), Enum.Material.Fabric, { canCollide = false })
+	ensurePart(props, "Backpack_C", Vector3.new(1.1, 1.3, 0.75), CFrame.new(4, 1.15, 6), Color3.fromRGB(240, 180, 60), Enum.Material.Fabric, { canCollide = false })
 end
 
 local function buildPetCage(classroom: Folder)
@@ -272,6 +519,16 @@ local function buildPetCage(classroom: Folder)
 		Color3.fromRGB(140, 100, 60),
 		Enum.Material.Wood
 	)
+	-- Desk edge trim
+	ensurePart(
+		classroom,
+		"HamsterDeskEdge",
+		Vector3.new(6.2, 0.15, 4.7),
+		CFrame.new(cageCenter.X, deskTopY - 0.05, cageCenter.Z),
+		Color3.fromRGB(120, 85, 50),
+		Enum.Material.Wood,
+		{ canCollide = false }
+	)
 
 	-- Transparent gameplay volume — keep exact CageSize/CageCenter.
 	local cage = ensureTaggedPart(
@@ -291,58 +548,101 @@ local function buildPetCage(classroom: Folder)
 	local halfY = cageSize.Y * 0.5
 	local halfZ = cageSize.Z * 0.5
 
-	-- Plastic tray / base
+	-- Plastic tray / base with raised lip
 	ensurePart(
 		visual,
 		"CageTray",
-		Vector3.new(cageSize.X + 0.3, 0.25, cageSize.Z + 0.3),
-		CFrame.new(cageCenter.X, deskTopY + 0.05, cageCenter.Z),
+		Vector3.new(cageSize.X + 0.35, 0.28, cageSize.Z + 0.35),
+		CFrame.new(cageCenter.X, deskTopY + 0.08, cageCenter.Z),
 		P.CageTray,
 		Enum.Material.SmoothPlastic
 	)
 	ensurePart(
 		visual,
+		"CageTrayLip",
+		Vector3.new(cageSize.X + 0.45, 0.12, cageSize.Z + 0.45),
+		CFrame.new(cageCenter.X, deskTopY + 0.28, cageCenter.Z),
+		P.CageTrayLip,
+		Enum.Material.SmoothPlastic,
+		{ canCollide = false }
+	)
+	-- Wood-chip bedding
+	ensurePart(
+		visual,
 		"Bedding",
-		Vector3.new(cageSize.X - 0.2, 0.08, cageSize.Z - 0.2),
-		CFrame.new(cageCenter.X, deskTopY + 0.2, cageCenter.Z),
+		Vector3.new(cageSize.X - 0.25, 0.12, cageSize.Z - 0.25),
+		CFrame.new(cageCenter.X, deskTopY + 0.28, cageCenter.Z),
 		P.Bedding,
 		Enum.Material.Sand,
 		{ canCollide = false }
 	)
+	-- Bedding speckles for chip read
+	for i = 1, 5 do
+		local ox = ((i % 3) - 1) * 0.7
+		local oz = ((i % 2) * 2 - 1) * 0.5
+		ensurePart(
+			visual,
+			`BeddingChip_{i}`,
+			Vector3.new(0.35, 0.06, 0.25),
+			CFrame.new(cageCenter.X + ox, deskTopY + 0.36, cageCenter.Z + oz),
+			if i % 2 == 0 then Color3.fromRGB(190, 150, 90) else Color3.fromRGB(230, 195, 130),
+			Enum.Material.Sand,
+			{ canCollide = false }
+		)
+	end
 
 	-- Plastic rim / top frame
 	ensurePart(
 		visual,
 		"CageRim",
-		Vector3.new(cageSize.X + 0.2, 0.2, cageSize.Z + 0.2),
+		Vector3.new(cageSize.X + 0.25, 0.22, cageSize.Z + 0.25),
 		CFrame.new(cageCenter.X, cageCenter.Y + halfY - 0.05, cageCenter.Z),
 		P.CagePlastic,
 		Enum.Material.SmoothPlastic,
 		{ canCollide = false }
 	)
 
-	-- Wire bars on long sides (±Z) and back (−X). Front (+X) is the door/latch face — sparser.
-	local barThick = 0.08
-	local barH = cageSize.Y - 0.35
-	local barY = deskTopY + 0.2 + barH * 0.5
-	local barIndex = 0
+	-- Wire bars: denser verticals + horizontal crossbars
+	local barThick = 0.07
+	local barH = cageSize.Y - 0.4
+	local barY = deskTopY + 0.32 + barH * 0.5
 	local function bar(name: string, size: Vector3, cf: CFrame)
-		barIndex += 1
 		ensurePart(visual, name, size, cf, P.CageWire, Enum.Material.Metal, { canCollide = false })
 	end
-	for i = -2, 2 do
-		local z = cageCenter.Z + i * (cageSize.Z / 5)
-		bar(`Wire_N_{i + 3}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X - halfX + 0.05, barY, z))
-		bar(`Wire_S_{i + 3}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X + halfX - 0.05, barY, z))
-	end
+	-- Long sides (±X faces in our layout: door +X, back −X; ±Z are short sides)
 	for i = -3, 3 do
-		local x = cageCenter.X + i * (cageSize.X / 7)
-		bar(`Wire_Back_{i + 4}`, Vector3.new(barThick, barH, barThick), CFrame.new(x, barY, cageCenter.Z - halfZ + 0.05))
+		local z = cageCenter.Z + i * (cageSize.Z / 7)
+		bar(`Wire_DoorV_{i + 4}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X + halfX - 0.02, barY, z))
+		bar(`Wire_BackV_{i + 4}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X - halfX + 0.05, barY, z))
 	end
-	-- Door-face verticals (sparse — “latch that doesn’t latch”)
-	for i = -1, 1 do
-		local z = cageCenter.Z + i * (cageSize.Z / 3)
-		bar(`Wire_Door_{i + 2}`, Vector3.new(barThick, barH, barThick), CFrame.new(cageCenter.X + halfX - 0.02, barY, z))
+	for i = -4, 4 do
+		local x = cageCenter.X + i * (cageSize.X / 9)
+		bar(`Wire_NZ_{i + 5}`, Vector3.new(barThick, barH, barThick), CFrame.new(x, barY, cageCenter.Z - halfZ + 0.05))
+		bar(`Wire_PZ_{i + 5}`, Vector3.new(barThick, barH, barThick), CFrame.new(x, barY, cageCenter.Z + halfZ - 0.05))
+	end
+	-- Horizontal crossbars (3 per long face)
+	for level = 1, 3 do
+		local y = deskTopY + 0.45 + (level - 1) * (barH / 3.2)
+		bar(
+			`Wire_H_Door_{level}`,
+			Vector3.new(barThick, barThick, cageSize.Z - 0.15),
+			CFrame.new(cageCenter.X + halfX - 0.02, y, cageCenter.Z)
+		)
+		bar(
+			`Wire_H_Back_{level}`,
+			Vector3.new(barThick, barThick, cageSize.Z - 0.15),
+			CFrame.new(cageCenter.X - halfX + 0.05, y, cageCenter.Z)
+		)
+		bar(
+			`Wire_H_NZ_{level}`,
+			Vector3.new(cageSize.X - 0.15, barThick, barThick),
+			CFrame.new(cageCenter.X, y, cageCenter.Z - halfZ + 0.05)
+		)
+		bar(
+			`Wire_H_PZ_{level}`,
+			Vector3.new(cageSize.X - 0.15, barThick, barThick),
+			CFrame.new(cageCenter.X, y, cageCenter.Z + halfZ - 0.05)
+		)
 	end
 
 	-- Corner posts (plastic)
@@ -351,7 +651,7 @@ local function buildPetCage(classroom: Folder)
 			ensurePart(
 				visual,
 				`Post_{ox}_{oz}`,
-				Vector3.new(0.18, cageSize.Y, 0.18),
+				Vector3.new(0.2, cageSize.Y, 0.2),
 				CFrame.new(cageCenter.X + ox * halfX, cageCenter.Y, cageCenter.Z + oz * halfZ),
 				P.CagePlastic,
 				Enum.Material.SmoothPlastic,
@@ -372,6 +672,16 @@ local function buildPetCage(classroom: Folder)
 	)
 	latch.Material = Enum.Material.Metal
 	ensurePointLight(latch, "LatchHint", P.CageLatch, 0.6, 4)
+	-- Latch handle nub
+	ensurePart(
+		visual,
+		"LatchHandle",
+		Vector3.new(0.15, 0.15, 0.35),
+		CFrame.new(latchPos + Vector3.new(0.2, 0, 0)),
+		Color3.fromRGB(70, 110, 55),
+		Enum.Material.Metal,
+		{ canCollide = false }
+	)
 
 	-- Lesson pad inside cage
 	ensureTaggedPart(
@@ -383,16 +693,66 @@ local function buildPetCage(classroom: Folder)
 		Color3.fromRGB(90, 140, 200)
 	)
 
-	-- Food bowl + wheel hints (simple parts)
+	-- Food bowl
 	ensurePart(
 		visual,
 		"FoodBowl",
 		Vector3.new(0.55, 0.22, 0.55),
-		CFrame.new(cageCenter.X - 1.1, deskTopY + 0.28, cageCenter.Z - 0.7),
+		CFrame.new(cageCenter.X - 1.1, deskTopY + 0.35, cageCenter.Z - 0.7),
 		P.FoodBowl,
 		Enum.Material.SmoothPlastic,
 		{ shape = Enum.PartType.Cylinder, canCollide = false }
 	)
+	ensurePart(
+		visual,
+		"FoodPellets",
+		Vector3.new(0.35, 0.08, 0.35),
+		CFrame.new(cageCenter.X - 1.1, deskTopY + 0.48, cageCenter.Z - 0.7),
+		Color3.fromRGB(180, 120, 60),
+		Enum.Material.Sand,
+		{ canCollide = false }
+	)
+
+	-- Water bottle on side of cage (+Z face)
+	local bottleX = cageCenter.X + 0.9
+	local bottleZ = cageCenter.Z + halfZ + 0.15
+	ensurePart(
+		visual,
+		"WaterBottle",
+		Vector3.new(0.45, 1.1, 0.45),
+		CFrame.new(bottleX, deskTopY + 1.35, bottleZ) * CFrame.Angles(0, 0, math.rad(90)),
+		P.WaterBottle,
+		Enum.Material.Glass,
+		{ shape = Enum.PartType.Cylinder, canCollide = false, transparency = 0.25 }
+	)
+	ensurePart(
+		visual,
+		"WaterCap",
+		Vector3.new(0.4, 0.2, 0.4),
+		CFrame.new(bottleX, deskTopY + 1.95, bottleZ),
+		P.WaterCap,
+		Enum.Material.SmoothPlastic,
+		{ shape = Enum.PartType.Cylinder, canCollide = false }
+	)
+	ensurePart(
+		visual,
+		"WaterNozzle",
+		Vector3.new(0.12, 0.45, 0.12),
+		CFrame.new(bottleX, deskTopY + 0.85, bottleZ - 0.2),
+		P.WaterNozzle,
+		Enum.Material.Metal,
+		{ shape = Enum.PartType.Cylinder, canCollide = false }
+	)
+	ensurePart(
+		visual,
+		"WaterHolder",
+		Vector3.new(0.15, 0.5, 0.5),
+		CFrame.new(bottleX, deskTopY + 1.5, cageCenter.Z + halfZ - 0.05),
+		P.CagePlastic,
+		Enum.Material.SmoothPlastic,
+		{ canCollide = false }
+	)
+
 	-- Wheel: ring + stand on −Z side of cage
 	ensurePart(
 		visual,
@@ -411,6 +771,15 @@ local function buildPetCage(classroom: Folder)
 		Color3.fromRGB(255, 200, 220),
 		Enum.Material.SmoothPlastic,
 		{ shape = Enum.PartType.Ball, canCollide = false }
+	)
+	ensurePart(
+		visual,
+		"WheelStand",
+		Vector3.new(0.15, 0.9, 0.15),
+		CFrame.new(cageCenter.X + 0.4, deskTopY + 0.55, cageCenter.Z - halfZ + 0.2),
+		P.CagePlastic,
+		Enum.Material.SmoothPlastic,
+		{ canCollide = false }
 	)
 end
 
@@ -453,14 +822,49 @@ local function ensureAtmosphere()
 	end
 end
 
+-- Dim / restore ceiling PointLights for day vs night (called from PhaseController).
+function LevelSetup.SetCeilingLightsForPhase(phase: string)
+	local classroom = Workspace:FindFirstChild("Classroom")
+	if not classroom then
+		return
+	end
+	local lights = classroom:FindFirstChild("CeilingLights")
+	if not lights then
+		return
+	end
+	local night = phase == "Night"
+	for _, child in lights:GetChildren() do
+		if child:IsA("BasePart") then
+			local glow = child:FindFirstChild("CeilingGlow")
+			if glow and glow:IsA("PointLight") then
+				local dayB = glow:GetAttribute("ClassPetDayBrightness")
+				local nightB = glow:GetAttribute("ClassPetNightBrightness")
+				if typeof(dayB) == "number" and typeof(nightB) == "number" then
+					glow.Brightness = if night then nightB else dayB
+				else
+					glow.Brightness = if night then 0.08 else 1.1
+				end
+			end
+			if child.Name:match("^Lamp_") then
+				child.Material = if night then Enum.Material.SmoothPlastic else Enum.Material.Neon
+				child.Color = if night then Color3.fromRGB(180, 180, 190) else ArtPalette.CeilingLamp
+			end
+		end
+	end
+end
+
 function LevelSetup.EnsurePlaceholders()
 	local classroom = ensureFolder()
 	buildClassroomShell(classroom)
+	buildCeilingLights(classroom)
 	buildBoardsAndTeacherZone(classroom)
+	buildBookshelves(classroom)
+	buildTrashAndExtras(classroom)
 	buildStudentDesks(classroom)
 	buildPetCage(classroom)
 	buildDogSpawn(classroom)
 	ensureAtmosphere()
+	LevelSetup.SetCeilingLightsForPhase("Day")
 	return classroom
 end
 
