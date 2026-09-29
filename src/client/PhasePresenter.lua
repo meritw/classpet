@@ -11,8 +11,8 @@ local PhasePresenter = {}
 function PhasePresenter.OnPhaseChanged(phase: Types.Phase, _cycleIndex: number, _goalText: string)
 	-- Soft local nudge; authoritative lighting is set by PhaseController on the server.
 	if phase == "Night" then
-		Lighting.FogEnd = 120
-		Lighting.FogColor = Color3.fromRGB(20, 22, 35)
+		Lighting.FogEnd = 140
+		Lighting.FogColor = Color3.fromRGB(18, 20, 32)
 	elseif phase == "Day" then
 		Lighting.FogEnd = 100000
 	elseif phase == "Won" then

@@ -1,6 +1,8 @@
 # Hamster Simulator: Class Pet
 
-Solo MVP scaffold for the Roblox experience **Hamster Simulator: Class Pet** — day quizzes → night buffs, latch escape, dog chase, phone win. Endless day/night until win; dog catch returns you to the cage for the **next day** (no same-night re-escape).
+Solo MVP for the Roblox experience **Hamster Simulator: Class Pet** — day quizzes → night buffs, latch escape, dog chase, phone win. Endless day/night until win; dog catch returns you to the cage for the **next day** (no same-night re-escape).
+
+You **are** the hamster (tiny avatar). The cage is a desk-pet enclosure; the classroom stays human-scale.
 
 ## Stack
 
@@ -26,7 +28,7 @@ Solo MVP scaffold for the Roblox experience **Hamster Simulator: Class Pet** —
 
 3. In Roblox Studio: install the [Rojo plugin](https://rojo.space/docs/v7/getting-started/installation/) **7.7.0** → **Connect** to the default address (`localhost:34872`).
 
-4. Press **Play** (solo). Placeholder classroom parts are created at runtime if missing (`CageVolume`, `Latch`, `LessonSpot`, `Phone`, `DogSpawn`). The avatar is scaled to **hamster size** (`GameConfig.HamsterScale`) and the cage is a desk-pet enclosure on `HamsterDesk` — classroom props stay human scale.
+4. Press **Play** (solo). Placeholder classroom + pet cage are created at runtime if missing (`CageVolume`, `Latch`, `LessonSpot`, `Phone`, `DogSpawn`, room shell, desks).
 
 ### Build a place file (optional)
 
@@ -42,21 +44,24 @@ Open `ClassPet.rbxlx` in Studio, or keep using live sync.
 |---|---|
 | **E** | Interact — lesson quiz (day), latch (night), phone (night) |
 | **Q** | Request Sugar Dash (consumes math buff charge at night) |
+| **RMB drag** | Orbit hamster camera (close over-shoulder) |
+| **Replay** (win panel) | Restart day/night cycle after phone win |
 
 ## Module map
 
 | Area | Module | Role |
 |---|---|---|
-| Server | `PhaseController` | Authoritative Day / Night / Won |
+| Server | `PhaseController` | Authoritative Day / Night / Won + Replay |
 | Server | `CageService` | Day containment, latch escape, cage respawn |
+| Server | `HamsterAvatar` | `ScaleTo(0.2)` hamster-sized player |
 | Server | `QuizService` | Present + validate quizzes → buff grants |
 | Server | `BuffService` | Day-earned night buff charges |
-| Server | `DogAI` | Patrol/chase stub; catch → next day |
+| Server | `DogAI` | Patrol/chase + readable dog placeholder |
 | Server | `PhoneObjective` | Desk phone → win |
+| Server | `LevelSetup` | POLYGON-style classroom + custom pet cage |
 | Server | `SessionService` | Solo session wiring + snapshots |
-| Server | `HamsterAvatar` | Scales default R15/R6 down to pet size |
-| Client | `GoalUI` / `QuizUI` | Phase, goal, buffs, quiz panel |
-| Shared | `GameConfig`, `Remotes`, `QuizBank`, `BuffDefs`, `Types` | Tunables + contracts |
+| Client | `GoalUI` / `QuizUI` / `HamsterCam` | HUD, quiz, close third-person cam |
+| Shared | `GameConfig`, `ArtPalette`, `Remotes`, `QuizBank`, `BuffDefs`, `Types` | Tunables + contracts |
 
 CollectionService tags for level work: `CageVolume`, `Latch`, `Phone`, `DogSpawn`, `LessonSpot`, `HideSpot`.
 
@@ -67,9 +72,22 @@ CollectionService tags for level work: `CageVolume`, `Latch`, `Phone`, `DogSpawn
 3. Dog catch ends the night → wait for next day
 4. Endless retry until phone win
 5. *99 Nights in the Forest*-style readable survival-nights energy (no IP copy)
+6. **Overnight:** close hamster cam · win message + Replay · POLYGON bright classroom · buffs **QuietPaws / SugarDash / LessonLeftover**
 
-Buff ids (`QuietPaws`, `SugarDash`, `LessonLeftover`) are **proposals** until finalized.
+## Art / Synty
+
+Roblox-native placeholders match Synty **POLYGON** proportions/colors. Pack priority and import steps for spaceman: **[docs/art-pass.md](./docs/art-pass.md)**.
+
+| Priority | Pack | Use |
+|---|---|---|
+| 1 | POLYGON Kids Pack | Classroom, desks, students |
+| 2 | POLYGON Dog Pack | Night dog |
+| 3 | POLYGON Office Pack | Teacher desk / interior |
+| 4 | POLYGON Police Station | Desk phone + whiteboard |
+| 5 | POLYGON Fantasy Village mouse | Hamster stand-in only |
+
+**No Synty hamster cage** — custom plastic/wire cage + latch + wheel + food (see `PetCageVisual` in `LevelSetup`).
 
 ## Status
 
-Working skeleton: phase clock, remotes, quiz → buff, latch, dog catch → next day, phone win. Not polished gameplay, art, or audio.
+Playable loop + overnight visual pass (classroom shell, pet cage dressing, day/night lighting, dog/phone readability, hamster cam, win Replay). Still placeholders until Synty FBX import on Bob’s machine.

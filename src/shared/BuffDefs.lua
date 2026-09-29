@@ -1,6 +1,5 @@
--- Night buff proposals from game-design.md.
--- Status: proposal until Bob finalizes the MVP buff set.
--- Quizzes grant night buffs (locked); these ids are the scaffold defaults.
+-- Night buffs — overnight lock (2026-09-29): QuietPaws, SugarDash, LessonLeftover.
+-- Quizzes grant night buffs (Bob-locked); this trio ships as the MVP set.
 
 local Types = require(script.Parent.Types)
 
