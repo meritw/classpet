@@ -30,7 +30,7 @@ Full rationale + gaps: Project store `docs/synty-asset-shortlist.md`. Dex: https
 | `TeacherDesk` | Office-brown desk | Office Pack desk |
 | `Whiteboard` / `BulletinBoard` | Flat boards | Police Station whiteboard / Kids boards |
 | `Phone` (tag `Phone`) | Landline base + keypad + handset/cradle + green ready light | Police Station phone on teacher desk |
-| `HamsterDesk` + `PetCageVisual` / `CageVolume` / `Latch` | Plastic tray/lip, denser wire grid, water bottle, wood-chip bedding, wheel, green latch (CageSize **4×2.5×3**) | Keep custom; optional Dog Pack carrier scrap |
+| `HamsterDesk` + `PetCageVisual` / `CageVolume` / `Latch` | Plastic tray/lip, colliding bars + invisible wall shell, water bottle, wood-chip bedding, wheel, green latch (CageSize **7×4×5.5**) | Keep custom; optional Dog Pack carrier scrap |
 | `ClassDog` | Labrador-ish Parts (legs, paws, tail, ears, snout) + collar | Dog Pack animated dog |
 | `CeilingLights` / posters / shelves / blinds / clock / trash | Roblox Parts set dressing | Kids / Office / Police props |
 | Player character | `HamsterAvatar` ScaleTo(**0.2**) + `HamsterDress` Parts + close hamster cam | Custom hamster or Fantasy Village mouse |

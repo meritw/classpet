@@ -152,10 +152,21 @@ function HamsterAvatar.Apply(character: Model)
 		end
 	end
 
+	-- ScaleTo shrinks JumpHeight with the body; restore a usable hamster hop.
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+	humanoid.UseJumpPower = false
+	humanoid.JumpHeight = GameConfig.HamsterJumpHeight
+
 	-- Wait a frame so ScaleTo finishes welding, then dress + soft-hide human mesh.
 	task.defer(function()
 		if not character.Parent then
 			return
+		end
+		-- Re-assert jump after ScaleTo settles (some avatars re-sync proportions).
+		if humanoid.Parent then
+			humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+			humanoid.UseJumpPower = false
+			humanoid.JumpHeight = GameConfig.HamsterJumpHeight
 		end
 		softHideBody(character)
 		applyHamsterDress(character, root)
