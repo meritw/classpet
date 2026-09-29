@@ -89,9 +89,9 @@ function CageService.TryLatchEscape(player: Player): (boolean, string?)
 		return false, "Too far."
 	end
 
-	-- "Latch that doesn’t latch" — escape succeeds.
+	-- "Latch that doesn’t latch" — escape succeeds (onto the desk just outside).
 	escapedThisNight[player] = true
-	root.CFrame = latch.CFrame + Vector3.new(4, 0, 0)
+	root.CFrame = latch.CFrame + GameConfig.LatchEscapeOffset
 	return true, nil
 end
 

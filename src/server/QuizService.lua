@@ -58,7 +58,7 @@ function QuizService.RequestQuiz(player: Player): (boolean, string?)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if lesson and lesson:IsA("BasePart") and root then
-		if (root.Position - lesson.Position).Magnitude > 14 then
+		if (root.Position - lesson.Position).Magnitude > GameConfig.LessonInteractDistance then
 			return false, "Get closer to the lesson."
 		end
 	end

@@ -26,7 +26,7 @@ Solo MVP scaffold for the Roblox experience **Hamster Simulator: Class Pet** —
 
 3. In Roblox Studio: install the [Rojo plugin](https://rojo.space/docs/v7/getting-started/installation/) **7.7.0** → **Connect** to the default address (`localhost:34872`).
 
-4. Press **Play** (solo). Placeholder classroom parts are created at runtime if missing (`CageVolume`, `Latch`, `LessonSpot`, `Phone`, `DogSpawn`).
+4. Press **Play** (solo). Placeholder classroom parts are created at runtime if missing (`CageVolume`, `Latch`, `LessonSpot`, `Phone`, `DogSpawn`). The avatar is scaled to **hamster size** (`GameConfig.HamsterScale`) and the cage is a desk-pet enclosure on `HamsterDesk` — classroom props stay human scale.
 
 ### Build a place file (optional)
 
@@ -54,6 +54,7 @@ Open `ClassPet.rbxlx` in Studio, or keep using live sync.
 | Server | `DogAI` | Patrol/chase stub; catch → next day |
 | Server | `PhoneObjective` | Desk phone → win |
 | Server | `SessionService` | Solo session wiring + snapshots |
+| Server | `HamsterAvatar` | Scales default R15/R6 down to pet size |
 | Client | `GoalUI` / `QuizUI` | Phase, goal, buffs, quiz panel |
 | Shared | `GameConfig`, `Remotes`, `QuizBank`, `BuffDefs`, `Types` | Tunables + contracts |
 
